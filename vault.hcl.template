@@ -1,5 +1,5 @@
 listener "tcp" {
-  address = "0.0.0.0:8200"
+  address = "{{ .vault_api_addr }}"
   tls_cert_file = "/ssl/vault/fullchain.pem"
   tls_key_file  = "/ssl/vault/privkey.pem"
   tls_disable = {{ .disable_tls }}
