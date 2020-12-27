@@ -1,0 +1,43 @@
+{
+  "name": "Hashicorp Vault Addon",
+  "version": "0.5",
+  "slug": "vault",
+  "description": "Add-on that launch an Hashicorp Vault server",
+  "url": "https://github.com/b46ha/ha-addon-vault",
+  "privileged": ["IPC_LOCK"],
+  "startup": "application",
+  "boot": "auto",
+  "ports": {
+    "8200/tcp": 8200,
+    "8201/tcp": null
+  },
+  "map": ["config:rw", "ssl:rw"],
+  "hassio_api": true,
+  "hassio_role": "default",
+  "webui": "[PROTO:enable_tls]://[HOST]:[PORT:8200]/",
+  "options": {
+    "vault_api_addr": "0.0.0.0:8200",
+    "vault_cluster_addr": "https://127.0.0.1:8201",
+    "tls_certificate": "/ssl/fullchain.pem",
+    "tls_private_key": "/ssl/privkey.pem",
+    "raft_path": "/data/vault/raft",
+    "disable_tls": false,
+    "aws_unseal": false
+    },
+  "schema": {
+    "vault_api_addr": "str",
+    "vault_cluster_addr": "str",
+    "tls_certificate": "str",
+    "tls_private_key": "str",
+    "vault_local_config": "str?",
+    "disable_tls": "bool",
+    "raft_path": "str",
+    "aws_region": "str?",
+    "aws_unseal": "bool",
+    "aws_access_key": "str?",
+    "aws_secret_key": "str?",
+    "aws_kms_key_id": "str?"
+  },
+  "arch": ["amd64", "armhf", "i386" , "aarch64"],
+  "image": "tidalf/{arch}-hassio-vault"
+}

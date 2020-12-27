@@ -1,0 +1,2 @@
+hassio-addon-vault/terraform/.terraform/*
+hassio-addon-vault/terraform/terraform.tfstate*
