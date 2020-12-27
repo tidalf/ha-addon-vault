@@ -9,6 +9,12 @@
 disable_tls: true
 ```
 
+### Install
+
+Use the following repository (add it in the add-on store of the supervisor) : 
+https://github.com/tidalf/ha-addons
+
+
 ### Enable the cluster
 Cluster listener addr is set to localhost by default. 
 
