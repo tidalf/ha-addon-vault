@@ -1,5 +1,15 @@
 # Home Assistant Add-on Hashicorp Vault
 
+[![GitHub Release][releases-shield]][releases]
+![Project Stage][project-stage-shield]
+[![License][license-shield]](LICENSE.md)
+
+![Supports armhf Architecture][armhf-shield]
+![Supports aarch64 Architecture][aarch64-shield]
+![Supports amd64 Architecture][amd64-shield]
+![Supports i386 Architecture][i386-shield]
+
+
 ### Summary
 
 - Launch an Hashicorp vault server in raft mode. 
