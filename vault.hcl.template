@@ -6,7 +6,7 @@ listener "tcp" {
 }
 storage "raft" {
   path = "{{ .raft_path }}"
-  node_id = "raft_node_1"
+  node_id = "{{ .node_id }}"
 }
 {{if eq .aws_unseal true }}
 seal "awskms" {

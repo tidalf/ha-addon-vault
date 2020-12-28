@@ -21,6 +21,7 @@
     "tls_certificate": "/ssl/fullchain.pem",
     "tls_private_key": "/ssl/privkey.pem",
     "raft_path": "/data/vault/raft",
+    "node_id": "raft_node_1",
     "disable_tls": false,
     "aws_unseal": false
     },
@@ -29,11 +30,12 @@
     "vault_cluster_addr": "str",
     "tls_certificate": "str",
     "tls_private_key": "str",
-    "vault_local_config": "str?",
-    "disable_tls": "bool",
     "raft_path": "str",
-    "aws_region": "str?",
+    "node_id": "str",
+    "disable_tls": "bool",
     "aws_unseal": "bool",
+    "vault_local_config": "str?",
+    "aws_region": "str?",
     "aws_access_key": "str?",
     "aws_secret_key": "str?",
     "aws_kms_key_id": "str?"
