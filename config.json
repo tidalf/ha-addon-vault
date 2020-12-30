@@ -23,15 +23,23 @@
     "raft_path": "/data/vault/raft",
     "node_id": "raft_node_1",
     "disable_tls": false,
+    "unsafe_auto_init": false,
+    "create_admin_user": false,
+    "vault_admin_user": "admin",
+    "vault_admin_password": "notrandom",
     "aws_unseal": false
     },
   "schema": {
     "vault_api_addr": "str",
     "vault_cluster_addr": "str",
+    "unsafe_auto_init": "bool",
+    "create_admin_user": "bool?",
     "tls_certificate": "str",
     "tls_private_key": "str",
     "raft_path": "str",
     "node_id": "str",
+    "vault_admin_user": "str?",
+    "vault_admin_password": "str?",
     "disable_tls": "bool",
     "aws_unseal": "bool",
     "vault_local_config": "str?",
@@ -40,6 +48,5 @@
     "aws_secret_key": "str?",
     "aws_kms_key_id": "str?"
   },
-  "arch": ["amd64", "armhf", "i386" , "aarch64"],
-  "image": "tidalf/{arch}-hassio-vault"
+  "arch": ["amd64", "armhf", "i386" , "aarch64"]
 }

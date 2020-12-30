@@ -1,10 +1,10 @@
 #!/usr/bin/with-contenv bashio
 # ==============================================================================
 # Home Assistant Community Add-on: Vault
-# Runs example1 script
+# Runs init script
 # ==============================================================================
 
 
-bashio::log.info "Starting Vault.sh..."
+bashio::log.info "Starting init.sh..."
 
-exec /usr/bin/vault.sh
+exec /usr/bin/init.sh

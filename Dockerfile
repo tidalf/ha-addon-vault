@@ -63,6 +63,9 @@ RUN mkdir -p /vault/logs && \
     mkdir -p /vault/raft && \
     chown -R vault:vault /vault
 
+RUN mkdir -p /vault/terraform
+
+COPY /terraform/* /vault/terraform/
 ###
 # 8200/tcp is the primary interface that applications use to interact with
 # Vault. 8021 for the cluster
@@ -74,5 +77,6 @@ COPY vault.hcl.template  /vault/config/
 
 # Copy root filesystem
 COPY rootfs /
+
 
 LABEL io.hass.version="VERSION" io.hass.type="addon" io.hass.arch="armhf|aarch64|i386|amd64"
