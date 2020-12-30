@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- use s6
+- add terraform binary
 
 ## [0.2] - 2020-12-27
 ### Added

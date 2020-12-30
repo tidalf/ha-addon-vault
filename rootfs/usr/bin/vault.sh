@@ -36,21 +36,6 @@ VAULT_LOCAL_CONFIG="$(bashio::config 'vault_local_config')"
 if [ -n "$VAULT_LOCAL_CONFIG" ] && [[ "$VAULT_LOCAL_CONFIG" != "null" ]]; then
     echo "$VAULT_LOCAL_CONFIG" > "$VAULT_CONFIG_DIR/local.json"
 fi
-
-if [ "$1" = 'server' ]; then
-    shift
-    set -- vault server \
-        -config="$VAULT_CONFIG_DIR" \
-        -dev-listen-address="${VAULT_DEV_LISTEN_ADDRESS:-"0.0.0.0:8200"}" \
-        "$@"
-elif [ "$1" = 'version' ]; then
-    # This needs a special case because there's no help output.
-    set -- vault "$@"
-elif vault --help "$1" 2>&1 | grep -q "vault $1"; then
-    # We can't use the return code to check for the existence of a subcommand, so
-    # we have to use grep to look for a pattern in the help output.
-    set -- vault "$@"
-fi
     
 # If the config dir is bind mounted then chown it
 if [ "$(stat -c %u /config/vault/config)" != "$(id -u vault)" ]; then
@@ -79,7 +64,10 @@ fi
 
 # run as vault
 if [ "$(id -u)" = "0" ]; then
-    set -- su-exec vault "$@"
+    set -- su-exec vault vault server \
+        -config="$VAULT_CONFIG_DIR" \
+        -dev-listen-address="${VAULT_DEV_LISTEN_ADDRESS:-"0.0.0.0:8200"}" \
+        "$@"
 fi
 
 exec "$@"

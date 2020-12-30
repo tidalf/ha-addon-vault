@@ -40,6 +40,5 @@
     "aws_secret_key": "str?",
     "aws_kms_key_id": "str?"
   },
-  "arch": ["amd64", "armhf", "i386" , "aarch64"],
-  "image": "tidalf/{arch}-hassio-vault"
+  "arch": ["amd64", "armhf", "i386" , "aarch64"]
 }
