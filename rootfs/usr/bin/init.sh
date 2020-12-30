@@ -15,6 +15,7 @@ mkdir -p /config/vault/terraform 2>/dev/null || true
 
 if [ $DISABLE_TLS = 'false' ] ; then 
   scheme="https://"
+  export VAULT_SKIP_VERIFY=1
 else
   scheme="http://"
 fi
@@ -49,6 +50,8 @@ wait_initialized() {
         output=$(cat $INI_PATH 2>/dev/null)
         if [ -z "$output" ]; then
             echo "* no ini file : exiting"
+            echo "* sleep 120 seconds"
+            sleep 120
             exit 1
         fi
     fi
