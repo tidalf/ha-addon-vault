@@ -14,6 +14,7 @@ seal "awskms" {
   access_key = "{{ .aws_access_key }}"
   secret_key = "{{ .aws_secret_key }}"
   kms_key_id = "{{ .aws_kms_key_id }}"
+  endpoint = ""
   disabled = {{if eq .aws_unseal true}} false {{else}} true {{end}}
 }
 
