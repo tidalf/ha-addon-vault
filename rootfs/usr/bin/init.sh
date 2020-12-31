@@ -221,7 +221,7 @@ main() {
            vault operator init -format json -pgp-keys "${PGP_KEYS}" -root-token-pgp-key "${PGP_KEYS}" -key-shares=1 -key-threshold=1 > /data/vault/vault-ini.json
            # fixme check output        
         else
-           if [ -f /data/vault/vault-ini.json ] && [ -f /data/vault/vault-ini-token.json ]; then
+           if [ -f /data/vault/vault-ini.json ]; then
              echo "* already initialized, nothing to do"
            else 
              echo "* already initialized, but no vault-ini found, try migrating"

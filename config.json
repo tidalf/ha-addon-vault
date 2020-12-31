@@ -39,6 +39,7 @@
     "vault_admin_password": "str?",
     "disable_tls": "bool",
     "aws_unseal": "bool?",
+    "aws_unseal_downgrade": "bool?",
     "auto_provision": "bool",
     "provision_token": "str?",
     "vault_local_config": "str?",
