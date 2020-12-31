@@ -33,6 +33,24 @@ Set it to a valid address through 'vault_cluster_addr' then enable the port forw
 raft_path: /config/vault/raft
 ```
 
+### Unsafe auto unseal
+- You can enable unsafe auto unseal (it'll store the unseal keys and root token in clear in /data/vault/vault.ini), it'll run a terraform config)
+```bash
+unsafe_auto_init: true
+```
+- You can create a default user with an admin policy attached by using the following config: 
+```bash
+create_admin_user: true
+vault_admin_user: admin
+vault_admin_password: some_password
+```
+
+### Use keybase handle to encrypt initial keys (it disable the unsafe auto unseal if activated)
+- You can enable auto initialization with gpg/keybase keys:
+```bash
+pgp_keys: 'keybase:exampleuser'
+```
+
 ### Use AWS KMS for autounseal
 It's possible to use the AWS KMS service to auto unseal the vault. 
 You'll need to create the kms key and the iam user credentials with correct policy (kms:Encrypt,kms:Decrypt and kms:DescribeKey).

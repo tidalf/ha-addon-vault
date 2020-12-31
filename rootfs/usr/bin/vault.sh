@@ -10,7 +10,6 @@ VAULT_TLS_CERTIFICATE="$(bashio::config 'tls_certificate')"
 VAULT_TLS_PRIVKEY="$(bashio::config 'tls_private_key')"
 DISABLE_TLS="$(bashio::config 'disable_tls')"
 scheme="http://"
-bashio::log.info "disable_tls:${DISABLE_TLS}"
 
 VAULT_CONFIG_DIR=/config/vault/config
 # create vault data dirs (/data/vault/raft by default)
