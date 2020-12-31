@@ -8,14 +8,15 @@ storage "raft" {
   path = "{{ .raft_path }}"
   node_id = "{{ .node_id }}"
 }
-
+{{ if .aws_unseal }}
+{{if or (eq .aws_unseal true) (eq .aws_unseal false) }}
 seal "awskms" {
   region     = "{{ .aws_region }}"
   access_key = "{{ .aws_access_key }}"
   secret_key = "{{ .aws_secret_key }}"
   kms_key_id = "{{ .aws_kms_key_id }}"
-  endpoint = ""
   disabled = {{if eq .aws_unseal true}} false {{else}} true {{end}}
 }
-
+{{end}}
+{{end}}
 ui = true
