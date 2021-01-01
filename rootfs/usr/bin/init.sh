@@ -71,22 +71,22 @@ decrypt_root() {
     bashio::log.info "In Decrypt root"
     gpg --list-keys
     gpg --list-secret-keys
-    sleep 30
-    echo $output | jq -r .root_token | base64 -d >/tmp/$$.gpg
-    echo "passphrase" | gpg --passphrase-fd=0 -no-tty --decrypt /tmp/$$.gpg
+    jq -r .root_token $INI_PATH | base64 -d >/tmp/$$.gpg
+    echo "passphrase" | gpg --passphrase-fd=0 --decrypt /tmp/$$.gpg
     sleep 30
 }
 
 decrypt() {
     gpg --list-keys
-    echo $output | jq --arg v $1 -r '.[$v] | .[]' | base64 -d >/tmp/$$.gpg
-    echo "passphrase" | gpg --passphrase-fd=0 --no-tty --decrypt /tmp/$$.gpg
+    jq --arg v "$1" -r '.[$v] | .[]' $INI_PATH | base64 -d >/tmp/$$.gpg
+    echo "passphrase" | gpg --passphrase-fd=0 --decrypt /tmp/$$.gpg
 }
 
 # initialized
 wait_initialized() {
     if [ "$(vault status -format json | jq .initialized)" = "false" ]; then
         bashio::log.info "Initializing the vault"
+        gpg "$ASC_PATH"
         output="$(vault operator init -format json -pgp-keys "${ASC_PATH}" -root-token-pgp-key "${ASC_PATH}" -key-shares=1 -key-threshold=1)"
         if [ "$UNSAFE_SAVE_INI" = "true" ]; then
             echo "$output" >$INI_PATH

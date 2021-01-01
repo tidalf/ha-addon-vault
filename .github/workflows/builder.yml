@@ -13,6 +13,9 @@ on:
     - docker-entrypoint.sh
     - config.json
     - vault.hcl.template
+    - rootfs/**
+    - CHANGELOG.md
+    - README.md
 
 env:
   BUILD_NAME: ha-addon-vault
