@@ -1,5 +1,5 @@
 #!/usr/bin/env bashio
-set -x
+
 # init vars
 CONFIG_PATH=/data/options.json
 DISABLE_TLS="$(bashio::config 'disable_tls')"
@@ -11,6 +11,7 @@ AUTO_PROVISION="$(bashio::config 'auto_provision')"
 PROVISION_TOKEN="$(bashio::config 'provision_token')"
 PGP_KEYS="$(bashio::config 'pgp_keys')"
 INI_PATH="/data/vault/vault.ini"
+TOKEN_INI_PATH="/data/vault/vault-ini-token.json"
 ASC_PATH="/data/vault/adm.asc"
 GNUPGHOME="/data/vault/gpghome"
 VAULT_TOKEN=""
@@ -34,18 +35,18 @@ fi
 export VAULT_ADDR="${scheme}localhost:8200"
 
 generate_gpg_key() {
+    bashio::log.info "in generate_gpg_key"
     GNUPGHOME="/data/vault/gpghome"
     output=""
     export GNUPGHOME
     mkdir -p $GNUPGHOME 2>/null || true
     chmod 700 $GNUPGHOME
-    if [ ! "$(gpg --list-keys operator@vault.local)" ]; then
+    if ! gpg --list-keys operator@vault.local; then
+        bashio::log.info "no key found generating a key"
         cat >initkey <<EOF
 %echo Generating a basic OpenPGP key
-Key-Type: RSA
-Key-Length: 2048
+Key-Type: default
 Subkey-Type: default
-Subkey-Length: 2048
 Name-Real: Adm
 Name-Comment: No passphrase
 Name-Email: operator@vault.local
@@ -56,7 +57,7 @@ Passphrase: passphrase
 %echo done
 EOF
         gpg --batch --generate-key initkey
-        gpg --armor --export operator@vault.local >$ASC_PATH
+        gpg --export operator@vault.local | base64 >$ASC_PATH
     fi
 }
 
@@ -69,30 +70,35 @@ wait_ready() {
 
 decrypt_root() {
     bashio::log.info "In Decrypt root"
-    gpg --list-keys
-    gpg --list-secret-keys
-    jq -r .root_token $INI_PATH | base64 -d >/tmp/$$.gpg
-    echo "passphrase" | gpg --passphrase-fd=0 --decrypt /tmp/$$.gpg
-    sleep 30
+    if [ -f $TOKEN_INI_PATH ]; then
+        jq -r .encoded_root_token $TOKEN_INI_PATH | base64 -d >/tmp/$$.gpg
+    else
+        jq -r .root_token $INI_PATH | base64 -d >/tmp/$$.gpg
+    fi
+    echo "passphrase" | gpg --pinentry-mode loopback --no-tty --passphrase-fd=0 --decrypt /tmp/$$.gpg
 }
 
 decrypt() {
-    gpg --list-keys
-    jq --arg v "$1" -r '.[$v] | .[]' $INI_PATH | base64 -d >/tmp/$$.gpg
-    echo "passphrase" | gpg --passphrase-fd=0 --decrypt /tmp/$$.gpg
+    if [ -f $INI_PATH ]; then
+        jq --arg v "$1" -r '.[$v] | .[]' $INI_PATH | base64 -d >/tmp/$$.gpg
+        echo "passphrase" | gpg --pinentry-mode loopback --no-tty --passphrase-fd=0 --decrypt /tmp/$$.gpg
+    else
+        bashio::log.info "No vault.ini found"
+    fi
+    
 }
 
 # initialized
 wait_initialized() {
     if [ "$(vault status -format json | jq .initialized)" = "false" ]; then
         bashio::log.info "Initializing the vault"
-        gpg "$ASC_PATH"
-        output="$(vault operator init -format json -pgp-keys "${ASC_PATH}" -root-token-pgp-key "${ASC_PATH}" -key-shares=1 -key-threshold=1)"
-        if [ "$UNSAFE_SAVE_INI" = "true" ]; then
-            echo "$output" >$INI_PATH
-        fi
-        if ! decrypt_root ; then
-            bashio::log.error "Can't initialized : exiting (sleep 60s)"
+        output="$(vault operator init -format json -pgp-keys="$ASC_PATH" -root-token-pgp-key=$ASC_PATH -key-shares=1 -key-threshold=1)"
+        echo "$output" >$INI_PATH
+        vault_root_token=$(decrypt_root)
+        if [ -n $vault_root_token ]; then
+            bashio::log.info "success ! root token decrypted successfully"
+        else
+            bashio::log.error "Can't initialize : exiting (sleep 60s)"
             sleep 60
             exit 1
         fi
@@ -101,7 +107,7 @@ wait_initialized() {
         if [ -f $INI_PATH ]; then
             output=$(cat $INI_PATH)
             if [ -z "$output" ]; then
-                bashio::log.error "* no ini file : exiting (sleep 60s)"
+                bashio::log.error "No ini file : exiting (sleep 60s)"
                 sleep 60
                 exit 1
             fi
@@ -113,9 +119,7 @@ wait_initialized() {
 wait_migrated() {
     if [ "$(vault status -format json | jq .migration)" = "true" ]; then
         bashio::log.info "Migrating"
-        for a in $(decrypt unseal_keys_b64); do
-            vault operator unseal -migrate "$a" >/dev/null
-        done
+        vault operator unseal -migrate "$(decrypt unseal_keys_b64)" >/dev/null
         if [ "$(vault status -format json | jq .initialized)" = "false" ]; then
             bashio::log.error "Migration failed : exiting (sleep 60s)"
             sleep 60
@@ -133,12 +137,10 @@ wait_unsealed() {
     if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
         bashio::log.info "Vault is sealed"
 
-        keys=$(decrypt unseal_keys_b64)
-        if [ -n "$keys" ]; then
+        key=$(decrypt unseal_keys_b64)
+        if [ -n "$key" ]; then
             bashio::log.info "We have keys, unsealing vault"
-            for a in $(decrypt unseal_keys_b64); do
-                vault operator unseal "$a" >/dev/null
-            done
+            vault operator unseal $key  >/dev/null
             if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
                 bashio::log.error "Unseal failed : exiting (sleep 60)"
                 sleep 60
@@ -162,7 +164,7 @@ wait_root_token() {
     if decrypt_root; then
         bashio::log.info "Root token available"
     else
-        bashio::log.error "* root token unavailable, exiting (sleep 60)"
+        bashio::log.error "Root token unavailable, exiting (sleep 60)"
         sleep 60
         exit 1
     fi
@@ -216,6 +218,8 @@ vault_rekey() {
         if [ "$vault_answer" != "null" ]; then
             bashio::log.info "Rekeying done"
             echo "$answer" >/data/vault/vault-ini.json
+            # we can't use it anymore
+            rm $INI_PATH
             return
         fi
     done
@@ -233,17 +237,15 @@ vault_retoken() {
         answer=$(vault operator generate-root -format json -nonce "$nonce" "$unseal_key")
         vault_answer=$(echo "$answer" | jq -r .encoded_root_token)
         complete=$(echo "$answer" | jq -r .complete)
+        VAULT_TOKEN="$(decrypt_root)"
+        export VAULT_TOKEN
         if [ "$vault_answer" != "" ] && [ "$complete" = "true" ]; then
             bashio::log.info "New root token created, saving it"
-            echo "$answer" >/data/vault/vault-ini-token.json
+            echo "$answer" >$TOKEN_INI_PATH
             bashio::log.warning "Revoke old token"
-            VAULT_TOKEN="$(echo "$output" | jq -r .root_token)"
-            export VAULT_TOKEN
             vault token revoke "$VAULT_TOKEN"
             # unset token it won't work anymore
             VAULT_TOKEN=""
-            # delete the file it won't work anymore
-            rm $INI_PATH
             return
         fi
     done
