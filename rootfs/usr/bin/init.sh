@@ -54,36 +54,34 @@ EOF
 }
 
 wait_ready() {
-    echo -ne "* Waiting for vault to be ready: "
+    bashio::log.info  "Waiting for vault to be ready"
     while [ -z "$(vault status -format json 2>/dev/null)" ]; do 
-        sleep 2
-        echo -ne .
+        sleep 3
     done
-    echo "ok!"
 }
 
 # initialized
 wait_initialized() {
     if [ "$(vault status -format json | jq .initialized)" = "false" ] ; then 
-    echo "* the vault is not initialized, let's do it"
-    output="$(vault operator init -format json)"
-    if ! echo "$output" | jq .root_token 2>/dev/null >/dev/null; then 
-        echo "* Can't initialized : exiting"
-        exit 1
-    else
-        echo "* vault initialized successfully"
-        if [ "$UNSAFE_SAVE_INI" = "true" ] ; then
-            echo "$output" > $INI_PATH
-        fi 
-    fi
+        bashio::log.info "Initializing the vault"
+        output="$(vault operator init -format json)"
+        if ! echo "$output" | jq .root_token 2>/dev/null >/dev/null; then 
+            bashio::log.error "Can't initialized : exiting (sleep 60s)"
+            sleep 60
+            exit 1
+        else
+            bashio::log.info "Vault initialized successfully"
+            if [ "$UNSAFE_SAVE_INI" = "true" ] ; then
+                echo "$output" > $INI_PATH
+            fi 
+        fi
     else 
-        echo "* vault already initialized"
+        bashio::log.info "Vault already initialized"
         if [ -f $INI_PATH ] ; then
             output=$(cat $INI_PATH)
             if [ -z "$output" ]; then
-                echo "* no ini file : error"
-                echo "* sleep 120 seconds"
-                sleep 120
+                bashio::log.error "* no ini file : exiting (sleep 60s)"
+                sleep 60
                 exit 1
             fi
         fi
@@ -93,15 +91,16 @@ wait_initialized() {
 # migrated
 wait_migrated() {
     if [ "$(vault status -format json | jq .migration)" = "true" ] ; then
-    echo "* migrating"
+    bashio::log.info "Migrating"
         for a in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]') ; do 
         vault operator unseal -migrate "$a" >/dev/null
         done
         if [ "$(vault status -format json | jq .initialized)" = "false" ] ; then
-            echo "* migration failed : exiting"
+            bashio::log.error "Migration failed : exiting (sleep 60s)"
+            sleep 60
             exit 1
         else 
-            echo "* migration done"
+            bashio::log.info "Migration done"
         fi
     fi
 }
@@ -110,7 +109,7 @@ wait_unsealed() {
     bashio::log.info "Wait unsealead"
     local keys=""
     if [ "$(vault status -format json | jq .sealed)" = "true" ] ; then
-        echo "* Vault is sealed"
+        bashio::log.info "Vault is sealed"
 
         # if [ $output = "" ] && [ $UNSAFE_SAVE_INI = "true" ]; then 
         #     bashio::log.info "empty output rekey locally"
@@ -118,36 +117,35 @@ wait_unsealed() {
 
         keys=$(echo "$output" | jq -r '.unseal_keys_b64 | .[]')
         if [ -n "$keys" ]; then
-            echo "* we have keys, unsealing vault"
+            bashio::log.info "We have keys, unsealing vault"
             for a in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]') ; do 
             vault operator unseal "$a" >/dev/null
             done
             if [ "$(vault status -format json | jq .sealed)" = "true" ] ; then
-                echo "* unseal failed : exiting"
+                bashio::log.error "Unseal failed : exiting (sleep 60)"
+                sleep 60
                 exit 1
             else 
-                echo "* unseal done"
+                bashio::log.info "Unseal done"
             fi
         else 
-            echo "* we wait until its manually (or auto) unsealed"
+            bashio::log.info "We wait until its manually (or auto) unsealed"
             while [ "$(vault status -format json | jq .sealed)" = "true" ] ; do
-              bashio::log.info "Waiting 10s for manual unseal"
-              sleep 15
+              sleep 5
             done
         fi
     else 
-        echo "* Vault already unsealed"
+        bashio::log.info "Vault already unsealed"
     fi
 }
-
 
 # root token available
 wait_root_token () {
     if echo "$output" | jq -r .root_token >/dev/null 2>/dev/null ; then
-        echo "* root token available"
-        echo "* start provisioning" 
+        bashio::log.info "Root token available"
     else
-        echo "* root token unavailable, exiting"
+        bashio::log.error "* root token unavailable, exiting (sleep 60)"
+        sleep 60
         exit 1
     fi
 }
@@ -163,11 +161,11 @@ terraform_vault () {
     /usr/bin/tempio -conf $CONFIG_PATH -template /config/vault/terraform/vault.tf.template -out /data/vault/terraform/vault.tf
     if [ -z "$VAULT_TOKEN" ]; then
         if [ -n "$PROVISION_TOKEN" ]; then
-            bashio::log.info "Using provision token"
+            bashio::log.info "Using config provision token"
             VAULT_TOKEN=$PROVISION_TOKEN
             export VAULT_TOKEN
         else
-            echo "* no provision token no terraform"
+            bashio::log.error "No provision token no terraform"
             return
         fi
     else
@@ -191,14 +189,14 @@ admin_user () {
 }
 
 vault_rekey () {
-    echo "* starting vault rekey"
+    bashio::log.info "Starting vault rekey"
     vault operator rekey -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator rekey -format json -pgp-keys "${PGP_KEYS}" -key-shares=1 -key-threshold=1 -init | jq .nonce -r)
     for unseal_key in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]') ; do 
         answer=$(vault operator rekey -format json -nonce "$nonce" "$unseal_key")
         vault_answer=$(echo "$answer"| jq .keys_base64)
         if [ "$vault_answer" != "null" ]; then
-          echo "* rekey done"
+          bashio::log.info "Rekeying done"
           echo "$answer" > /data/vault/vault-ini.json
           return
         fi
@@ -206,7 +204,7 @@ vault_rekey () {
 }
 
 vault_retoken () {
-    echo "* starting vault retoken"
+    bashio::log.info "Starting vault retoken"
     vault operator generate-root -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator generate-root -format json -pgp-key "${PGP_KEYS}" -init | jq .nonce -r)
     for unseal_key in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]') ; do 
@@ -214,9 +212,9 @@ vault_retoken () {
         vault_answer=$(echo "$answer"| jq -r .encoded_root_token)
         complete=$(echo "$answer"| jq -r .complete)
         if [ "$vault_answer" != "" ] && [ "$complete" = "true" ]; then
-          echo "* retoken done"
+          bashio::log.info "Rew root token created done"
           echo "$answer" > /data/vault/vault-ini-token.json
-          echo "* revoke old token (!)"
+          bashio::log.info "Revoke old token (!)"
           VAULT_TOKEN="$(echo "$output" | jq -r .root_token)"
           export VAULT_TOKEN
           vault token revoke "$VAULT_TOKEN"
@@ -242,8 +240,8 @@ main() {
         wait_root_token
         VAULT_TOKEN="$(echo "$output" | jq -r .root_token)"
         export VAULT_TOKEN
-        echo "* wait 10 seconds (raft election)"
-        sleep 10
+        bashio::log.info "Wait 15 seconds (raft election)"
+        sleep 15
     fi
     if [ ! "$PGP_KEYS" = "null" ]; then
         wait_ready
@@ -252,13 +250,13 @@ main() {
            # fixme check output        
         else
            if [ -f /data/vault/vault-ini.json ]; then
-             echo "* already initialized, nothing to do"
+             bashio::log.info "Already initialized, found vault-ini, nothing to do"
            else 
-             echo "* already initialized, but no vault-ini found, try migrating"
+             bashio::log.info "Already initialized, but no vault-ini found, try migrating"
              wait_initialized
              wait_unsealed
              # wait election
-             echo "* wait for the raft election (15s)"
+             bashio::log.info "Revoke old token (!)" "* wait for the raft election (15s)"
              sleep 15
              vault_retoken
              vault_rekey
@@ -279,6 +277,7 @@ main() {
         admin_user
     fi
     while true; do
+        bashio::log.info "Finished: Enter infinite loop."
         sleep 120
     done
 }
