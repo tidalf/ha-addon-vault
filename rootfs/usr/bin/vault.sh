@@ -16,8 +16,8 @@ VAULT_CONFIG_DIR=/config/vault/config
 mkdir -p $VAULT_CONFIG_DIR /config/vault/logs /data/vault/raft /config/vault/raft /config/vault/file 2>/dev/null
 
 # if a cert is available and tls is not disabled we copy the cert (to make it readble by wault) and we use it
-if [ -f "$VAULT_TLS_PRIVKEY" ] && [ "$DISABLE_TLS" = false ] ; then
-    mkdir -p /ssl/vault 2/>/dev/null
+if [ -f "$VAULT_TLS_PRIVKEY" ] && [ "$DISABLE_TLS" = false ]; then
+    mkdir -p /ssl/vault 2>/dev/null
     cp "$VAULT_TLS_PRIVKEY" "$VAULT_TLS_CERTIFICATE" /ssl/vault
     # chown for vault uses
     chown -R vault /ssl/vault
@@ -33,24 +33,15 @@ export VAULT_API_ADDR VAULT_CLUSTER_ADDR
 # Vault configuration JSON without having to bind any volumes.
 VAULT_LOCAL_CONFIG="$(bashio::config 'vault_local_config')"
 if [ -n "$VAULT_LOCAL_CONFIG" ] && [[ "$VAULT_LOCAL_CONFIG" != "null" ]]; then
-    echo "$VAULT_LOCAL_CONFIG" > "$VAULT_CONFIG_DIR/local.json"
+    echo "$VAULT_LOCAL_CONFIG" >"$VAULT_CONFIG_DIR/local.json"
 fi
-    
+
 # If the config dir is bind mounted then chown it
-if [ "$(stat -c %u /config/vault/config)" != "$(id -u vault)" ]; then
+if [ "$(stat -c %u /config/vault)" != "$(id -u vault)" ]; then
     chown -R vault:vault /config/vault/config
-fi
-if [ "$(stat -c %u /config/vault/logs)" != "$(id -u vault)" ]; then
-    chown -R vault:vault /config/vault/logs
-fi
-if [ "$(stat -c %u /config/vault/file)" != "$(id -u vault)" ]; then
-    chown -R vault:vault /config/vault/file
 fi
 if [ "$(stat -c %u /data/vault)" != "$(id -u vault)" ]; then
     chown -R vault:vault /data/vault
-fi
-if [ "$(stat -c %u /config/vault/raft)" != "$(id -u vault)" ]; then
-    chown -R vault:vault /config/vault/raft
 fi
 
 # Allow mlock to avoid swapping Vault memory to disk
