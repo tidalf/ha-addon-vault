@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 - unsafe auto unseal
 - gpg/keybase encryption of init keys for the users
 - migrations between modes
-- gpg encryption of init keys for (less) unsafe auto unseal and migrations (wip)
+- gpg encryption of init keys for (less) unsafe auto unseal and migrations
 
 ## [0.2] - 2020-12-27
 ### Added
