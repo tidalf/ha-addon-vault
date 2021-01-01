@@ -53,9 +53,7 @@ RUN set -eux; \
     cd /tmp && \
     rm -rf /tmp/build && \
     gpgconf --kill dirmngr && \
-    gpgconf --kill gpg-agent && \
-    apk del gnupg openssl && \
-    rm -rf /root/.gnupg
+    gpgconf --kill gpg-agent
 
 RUN mkdir -p /vault/logs && \
     mkdir -p /vault/file && \

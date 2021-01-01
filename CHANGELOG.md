@@ -2,11 +2,13 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-- use s6
-- add terraform binary for provisioning
-- add unsafe auto unseal
-- add gpg encryption of init keys
+### Added
+- s6 process supervision
+- terraform for provisioning
+- unsafe auto unseal
+- gpg/keybase encryption of init keys for the users
 - migrations between modes
+- gpg encryption of init keys for (less) unsafe auto unseal and migrations (wip)
 
 ## [0.2] - 2020-12-27
 ### Added

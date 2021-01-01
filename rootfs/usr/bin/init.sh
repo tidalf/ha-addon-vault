@@ -25,6 +25,34 @@ fi
 export VAULT_ADDR="${scheme}localhost:8200"
 
 # ready
+
+generate_gpg_key() {
+    export GNUPGHOME="/data/gpghome"
+    mkdir -p $GNUPGHOME 2>/null
+    chmod 700 $GNUPGHOME
+    if [ ! "$(gpg --list-keys Adm)" ] ; then
+        cat >initkey <<EOF
+%echo Generating a basic OpenPGP key
+Key-Type: RSA
+Key-Length: 2048
+Subkey-Type: RSA
+Subkey-Length: 2048
+Name-Real: Adm
+Name-Comment: No passphrase
+Name-Email: operator@vault.local
+Expire-Date: 0
+Passphrase: passphrase
+# Do a commit here, so that we can later print "done" :-)
+%commit
+%echo done
+EOF
+        gpg --batch --generate-key initkey
+    fi
+    if [ ! -f /data/vault/adm.asc ]; then
+        gpg --armor --export operator@vault.local > /data/vault/adm.asc
+    fi
+}
+
 wait_ready() {
     echo -ne "* Waiting for vault to be ready: "
     while [ -z "$(vault status -format json 2>/dev/null)" ]; do 
@@ -103,8 +131,8 @@ wait_unsealed() {
         else 
             echo "* we wait until its manually (or auto) unsealed"
             while [ "$(vault status -format json | jq .sealed)" = "true" ] ; do
-              sleep 10
               bashio::log.info "Waiting 10s for manual unseal"
+              sleep 15
             done
         fi
     else 
@@ -143,7 +171,7 @@ terraform_vault () {
             return
         fi
     else
-        bashio::log.info "We have a vault token $VAULT_TOKEN"
+        bashio::log.info "We have a vault token"
     fi
     cd /data/vault/terraform || return
     terraform init
@@ -204,6 +232,8 @@ vault_retoken () {
 main() {
     # bashio::log.trace "${FUNCNAME[0]}"
     # bashio::log.info "Seconds between each quotes is set to: ${sleep}"
+    generate_gpg_key
+
     if [ "$UNSAFE_SAVE_INI" = "true" ] && [ "$PGP_KEYS" = "null" ] ; then
         wait_ready
         wait_initialized
@@ -235,8 +265,12 @@ main() {
            fi
         fi
         bashio::log.info "unseal keys and root token should be in /data/vault/vault-ini.json and  /data/vault/vault-ini-token.json (encrypted for $PGP_KEYS) :"
-        bashio::log.info "$(cat /data/vault/vault-ini.json)"
-        bashio::log.info "$(cat /data/vault/vault-ini-token.json)"
+        if [ -f /data/vault/vault-ini.json ]; then 
+            bashio::log.info "$(cat /data/vault/vault-ini.json 2>/dev/null)"
+        fi
+        if [ -f /data/vault/vault-ini.json ]; then 
+            bashio::log.info "$(cat /data/vault/vault-ini-token.json 2>/dev/null)"
+        fi
     fi
     if [ "$AUTO_PROVISION" = "true" ]; then
         wait_initialized

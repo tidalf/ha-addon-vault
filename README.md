@@ -45,11 +45,18 @@ vault_admin_user: admin
 vault_admin_password: some_password
 ```
 
-### Use keybase handle to encrypt initial keys (it disable the unsafe auto unseal if activated)
+### Use keybase handle to encrypt initial keys
 - You can enable auto initialization with gpg/keybase keys:
 ```bash
 pgp_keys: 'keybase:exampleuser'
 ```
+- the encrypted variables are shown in the log (fixme?)
+- if you use keybase and no kms autounseal you'll need to unseal manually
+```bash
+export VAULT_ADDR="http(s)://yourinstance:8200"
+vault operator unseal [-migrate] $(echo $unsealkey | base64 -d | keybase pgp decrypt)
+```
+
 
 ### Use AWS KMS for autounseal
 It's possible to use the AWS KMS service to auto unseal the vault. 
@@ -62,4 +69,10 @@ aws_region: eu-west-1
 aws_access_key: *****
 aws_secret_key: ******
 aws_kms_key_id: ******
+```
+
+If you disable aws kms, you need to set the downgrade variable (at least for the transition) (fixme)
+```bash
+aws_unseal: false
+aws_unseal_downgrade: true
 ```
