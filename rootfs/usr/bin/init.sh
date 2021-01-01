@@ -1,5 +1,5 @@
 #!/usr/bin/env bashio
-
+set -x
 # init vars
 CONFIG_PATH=/data/options.json
 DISABLE_TLS="$(bashio::config 'disable_tls')"
@@ -11,10 +11,17 @@ AUTO_PROVISION="$(bashio::config 'auto_provision')"
 PROVISION_TOKEN="$(bashio::config 'provision_token')"
 PGP_KEYS="$(bashio::config 'pgp_keys')"
 INI_PATH="/data/vault/vault.ini"
+ASC_PATH="/data/vault/adm.asc"
+GNUPGHOME="/data/vault/gpghome"
 VAULT_TOKEN=""
 output=""
+export GNUPGHOME
 
-if [ ! -d /config/vault/terraform ]
+if [ ! -d $GNUPGHOME ]; then
+    mkdir -p $GNUPGHOME
+fi
+
+if [ ! -d /config/vault/terraform ]; then
     mkdir -p /config/vault/terraform
 fi
 
@@ -27,15 +34,17 @@ fi
 export VAULT_ADDR="${scheme}localhost:8200"
 
 generate_gpg_key() {
-    export GNUPGHOME="/data/gpghome"
-    mkdir -p $GNUPGHOME 2>/null
+    GNUPGHOME="/data/vault/gpghome"
+    output=""
+    export GNUPGHOME
+    mkdir -p $GNUPGHOME 2>/null || true
     chmod 700 $GNUPGHOME
-    if [ ! "$(gpg --list-keys Adm)" ]; then
+    if [ ! "$(gpg --list-keys operator@vault.local)" ]; then
         cat >initkey <<EOF
 %echo Generating a basic OpenPGP key
 Key-Type: RSA
 Key-Length: 2048
-Subkey-Type: RSA
+Subkey-Type: default
 Subkey-Length: 2048
 Name-Real: Adm
 Name-Comment: No passphrase
@@ -47,9 +56,7 @@ Passphrase: passphrase
 %echo done
 EOF
         gpg --batch --generate-key initkey
-    fi
-    if [ ! -f /data/vault/adm.asc ]; then
-        gpg --armor --export operator@vault.local >/data/vault/adm.asc
+        gpg --armor --export operator@vault.local >$ASC_PATH
     fi
 }
 
@@ -60,20 +67,34 @@ wait_ready() {
     done
 }
 
+decrypt_root() {
+    bashio::log.info "In Decrypt root"
+    gpg --list-keys
+    gpg --list-secret-keys
+    sleep 30
+    echo $output | jq -r .root_token | base64 -d >/tmp/$$.gpg
+    echo "passphrase" | gpg --passphrase-fd=0 -no-tty --decrypt /tmp/$$.gpg
+    sleep 30
+}
+
+decrypt() {
+    gpg --list-keys
+    echo $output | jq --arg v $1 -r '.[$v] | .[]' | base64 -d >/tmp/$$.gpg
+    echo "passphrase" | gpg --passphrase-fd=0 --no-tty --decrypt /tmp/$$.gpg
+}
+
 # initialized
 wait_initialized() {
     if [ "$(vault status -format json | jq .initialized)" = "false" ]; then
         bashio::log.info "Initializing the vault"
-        output="$(vault operator init -format json)"
-        if ! echo "$output" | jq .root_token 2>/dev/null >/dev/null; then
+        output="$(vault operator init -format json -pgp-keys "${ASC_PATH}" -root-token-pgp-key "${ASC_PATH}" -key-shares=1 -key-threshold=1)"
+        if [ "$UNSAFE_SAVE_INI" = "true" ]; then
+            echo "$output" >$INI_PATH
+        fi
+        if ! decrypt_root ; then
             bashio::log.error "Can't initialized : exiting (sleep 60s)"
             sleep 60
             exit 1
-        else
-            bashio::log.info "Vault initialized successfully"
-            if [ "$UNSAFE_SAVE_INI" = "true" ]; then
-                echo "$output" >$INI_PATH
-            fi
         fi
     else
         bashio::log.info "Vault already initialized"
@@ -92,7 +113,7 @@ wait_initialized() {
 wait_migrated() {
     if [ "$(vault status -format json | jq .migration)" = "true" ]; then
         bashio::log.info "Migrating"
-        for a in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]'); do
+        for a in $(decrypt unseal_keys_b64); do
             vault operator unseal -migrate "$a" >/dev/null
         done
         if [ "$(vault status -format json | jq .initialized)" = "false" ]; then
@@ -112,10 +133,10 @@ wait_unsealed() {
     if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
         bashio::log.info "Vault is sealed"
 
-        keys=$(echo "$output" | jq -r '.unseal_keys_b64 | .[]')
+        keys=$(decrypt unseal_keys_b64)
         if [ -n "$keys" ]; then
             bashio::log.info "We have keys, unsealing vault"
-            for a in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]'); do
+            for a in $(decrypt unseal_keys_b64); do
                 vault operator unseal "$a" >/dev/null
             done
             if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
@@ -138,7 +159,7 @@ wait_unsealed() {
 
 # root token available
 wait_root_token() {
-    if echo "$output" | jq -r .root_token >/dev/null 2>/dev/null; then
+    if decrypt_root; then
         bashio::log.info "Root token available"
     else
         bashio::log.error "* root token unavailable, exiting (sleep 60)"
@@ -189,7 +210,7 @@ vault_rekey() {
     bashio::log.warning "Starting vault rekey"
     vault operator rekey -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator rekey -format json -pgp-keys "${PGP_KEYS}" -key-shares=1 -key-threshold=1 -init | jq .nonce -r)
-    for unseal_key in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]'); do
+    for unseal_key in $(decrypt unseal_keys_b64); do
         answer=$(vault operator rekey -format json -nonce "$nonce" "$unseal_key")
         vault_answer=$(echo "$answer" | jq .keys_base64)
         if [ "$vault_answer" != "null" ]; then
@@ -207,7 +228,8 @@ vault_retoken() {
     bashio::log.warning "Starting vault retoken"
     vault operator generate-root -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator generate-root -format json -pgp-key "${PGP_KEYS}" -init | jq .nonce -r)
-    for unseal_key in $(echo "$output" | jq -r '.unseal_keys_b64 | .[]'); do
+    # we use unseal keys to do the retoken
+    for unseal_key in $(decrypt unseal_keys_b64); do
         answer=$(vault operator generate-root -format json -nonce "$nonce" "$unseal_key")
         vault_answer=$(echo "$answer" | jq -r .encoded_root_token)
         complete=$(echo "$answer" | jq -r .complete)
@@ -243,7 +265,7 @@ main() {
         wait_migrated
         wait_unsealed
         wait_root_token
-        VAULT_TOKEN="$(echo "$output" | jq -r .root_token)"
+        VAULT_TOKEN="$(decrypt_root)"
         export VAULT_TOKEN
         bashio::log.info "Wait 15 seconds (raft election)"
         sleep 15
