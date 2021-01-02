@@ -1,14 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.3] - 2021-01-02
 ### Added
 - s6 process supervision
 - terraform for provisioning
 - unsafe auto unseal
 - gpg/keybase encryption of init keys for the users
 - migrations between modes (hacky)
-- gpg encryption of init keys for (less) unsafe auto unseal and migrations
+- gpg encryption of init keys for (less) unsafe auto unseal and migrations (very hacky)
 
 ## [0.2] - 2020-12-27
 ### Added
