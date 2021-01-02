@@ -106,7 +106,8 @@ vault token create -ttl=2h
 echo "copy this token in the setting \"provision_token:\""
 echo "and set unsafe_downgrade: true"
 echo "then restart the addon, press enter when done"
-pause
+
+read a
 
 echo "$3" | base64 -d > pb2
 vault operator unseal $(decrypt $1)
