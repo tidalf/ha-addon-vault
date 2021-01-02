@@ -90,9 +90,10 @@ Set it to a valid address through 'vault_cluster_addr' then enable the port forw
 (it's untested, no automated setup for multi nodes for now)
 
 ## Downgrading from keybase to unsafe local storage
-It's a bit tricky: 
+It's a bit tricky and those commands need to be exec outside of the addon container: 
 
-- Retrieve the needed values from the logs (keys_b64 and encoded_root_token)
+- Retrieve the needed values from the logs (keys_b64, encoded_root_token and adm.asc)
+- Config your local vault client to reach your vault server addon (export VAULT_ADDR=..)
 - Unseal the vault using your keybase
 - Create a provisioning token
 - Set it in the config, restart
@@ -101,9 +102,9 @@ It's a bit tricky:
 
 ```bash
 #!/usr/bin/env bash
-# $1 is the encrypted unseal key (from the logs)
-# $2 is the encrypted root key
-# $3 is the gpg key of the local unsafe storage
+# $1 is the encrypted unseal key (keys_b64 from the logs)
+# $2 is the encrypted root key (encoded_root_token from the logs)
+# $3 is the gpg key of the local unsafe storage (adm.asc from the logs)
 
 decrypt () {
   echo $1 | base64 -d | keybase pgp decrypt
