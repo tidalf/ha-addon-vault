@@ -40,7 +40,7 @@ vault_admin_user: admin
 vault_admin_password: some_password
 ```
 
-### Use keybase handle to encrypt initial keys
+### Use keybase to encrypt initial keys
 - You can enable auto initialization with gpg/keybase keys:
 ```bash
 pgp_keys: 'keybase:exampleuser'
