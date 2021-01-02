@@ -21,7 +21,7 @@
     "tls_certificate": "/ssl/fullchain.pem",
     "tls_private_key": "/ssl/privkey.pem",
     "raft_path": "/data/vault/raft",
-    "unsafe_auto_init": "false",
+    "unsafe_auto_init": false,
     "node_id": "raft_node_1",
     "disable_tls": false,
     "auto_provision": false
@@ -29,7 +29,7 @@
   "schema": {
     "vault_api_addr": "str",
     "vault_cluster_addr": "str",
-    "unsafe_auto_init": "bool?",
+    "unsafe_auto_init": "bool",
     "create_admin_user": "bool?",
     "tls_certificate": "str",
     "tls_private_key": "str",
