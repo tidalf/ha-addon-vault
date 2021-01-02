@@ -35,7 +35,7 @@ raft_path: /config/vault/raft
 unsafe_auto_init: true
 ```
 
-## Auto provisioning
+### Auto provisioning
 - You can enable initial config of the vault: It'll run a terraform config (it can be in changed in /config/vault/terraform)
 ```bash
 auto_provision: true
@@ -83,13 +83,13 @@ aws_unseal: false
 aws_unseal_downgrade: true
 ```
 
-## Enable the cluster
+### Enable the cluster
 Cluster listener addr is set to localhost by default. 
 
 Set it to a valid address through 'vault_cluster_addr' then enable the port forward for tcp/8201 (provide a value for the port)
 (it's untested, no automated setup for multi nodes for now)
 
-## Downgrading from keybase to unsafe local storage
+### Downgrading from keybase to unsafe local storage
 It's a bit tricky: 
 
 - Retrieve the needed values from the logs (keys_b64 and encoded_root_token)
