@@ -111,6 +111,10 @@ read a
 
 echo "$3" | base64 -d > pb2
 vault operator unseal $(decrypt $1)
+
+echo "Sleep for elections"
+sleep 15 
+
 nonce=$(vault operator rekey -format json -pgp-keys=pb2 -key-shares=1 -key-threshold=1 -init -backup | jq -r .nonce)
 vault operator rekey -nonce $nonce $(decrypt $1)
 ```
