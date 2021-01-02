@@ -21,6 +21,7 @@
     "tls_certificate": "/ssl/fullchain.pem",
     "tls_private_key": "/ssl/privkey.pem",
     "raft_path": "/data/vault/raft",
+    "unsafe_auto_init": "false",
     "node_id": "raft_node_1",
     "disable_tls": false,
     "auto_provision": false
