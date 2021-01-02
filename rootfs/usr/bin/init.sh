@@ -107,7 +107,7 @@ decrypt() {
     else
         bashio::log.info "No vault.ini found"
     fi
-    
+
 }
 
 # initialized
@@ -117,7 +117,7 @@ wait_initialized() {
         output="$(vault operator init -format json -pgp-keys="$ASC_PATH" -root-token-pgp-key=$ASC_PATH -key-shares=1 -key-threshold=1)"
         echo "$output" >$INI_PATH
         vault_root_token=$(decrypt_root)
-        if [ -n $vault_root_token ]; then
+        if [ -n "$vault_root_token" ]; then
             bashio::log.info "success ! root token decrypted successfully"
         else
             bashio::log.error "Can't initialize : exiting (sleep 60s)"
@@ -150,11 +150,11 @@ wait_initialized() {
 wait_migrated() {
     if [ "$(vault status -format json | jq .migration)" = "true" ]; then
         bashio::log.info "Migrating"
-        
-        test_key=$(cat $INI_PATH | jq .keys_base64)
+
+        test_key=$(jq .keys_base64 $INI_PATH)
         if [ "$test_key" = "null" ]; then
             keyname="unseal_keys_b64"
-        else 
+        else
             keyname="keys_base64"
         fi
         vault operator unseal -migrate "$(decrypt $keyname)" >/dev/null
@@ -171,23 +171,23 @@ wait_migrated() {
 # unsealed
 wait_unsealed() {
     bashio::log.info "Wait unsealead"
-    local keys=""
+    local key=""
     if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
         bashio::log.info "Vault is sealed"
         if [ -f $INI_PATH ]; then
-            test_key=$(cat $INI_PATH | jq .keys_base64)
+            test_key=$(jq .keys_base64 $INI_PATH)
             if [ "$test_key" = "null" ]; then
                 keyname="unseal_keys_b64"
-            else 
+            else
                 keyname="keys_base64"
             fi
             key=$(decrypt $keyname)
             if [ -n "$key" ]; then
                 bashio::log.info "We have keys, unsealing vault"
                 if [ "$AWS_UNSEAL_DOWNGRADE" = "true" ]; then
-                    vault operator unseal -migrate $key  >/dev/null
+                    vault operator unseal -migrate "$key" >/dev/null
                 else
-                    vault operator unseal $key  >/dev/null
+                    vault operator unseal "$key" >/dev/null
                 fi
                 if [ "$(vault status -format json | jq .sealed)" = "true" ]; then
                     bashio::log.error "Unseal failed : exiting (sleep 60)"
@@ -221,42 +221,42 @@ auth_with_provision_token() {
 
 rekey_with_backup() {
     bashio::log.warning "Rekey with backup called"
-    bashio::log.notice $(cat /data/vault/adm.asc)
+    bashio::log.notice "$(cat /data/vault/adm.asc)"
     bashio::log.notice "Please rekey for me"
     auth_with_provision_token
     newkey=$(vault operator rekey -backup-retrieve -format json | jq -r '.data.KeysB64 | .[] | .[]')
-    while [ -z $newkey ]; do
-         sleep 10
-         bashio::log.notice "waiting for rekey"
-         newkey=$(vault operator rekey -backup-retrieve -format json | jq -r '.data.KeysB64 | .[] | .[]')
+    while [ -z "$newkey" ]; do
+        sleep 10
+        bashio::log.notice "waiting for rekey"
+        newkey=$(vault operator rekey -backup-retrieve -format json | jq -r '.data.KeysB64 | .[] | .[]')
     done
-    newbackup=$(vault operator rekey -backup-retrieve -format json)
+    vault operator rekey -backup-retrieve -format json
     bashio::log.info "decrypt it"
-    echo $newkey | base64 -d > /tmp/$$.gpg
+    echo "$newkey" | base64 -d >/tmp/$$.gpg
     unseal_key=$(echo "passphrase" | gpg --pinentry-mode loopback --no-tty --passphrase-fd=0 --decrypt /tmp/$$.gpg)
     # we delete the backup key (fixme add a seting to keep it?)
     vault operator rekey -backup-delete
     # we rekey another time to make it clean
-    if [ -n $unseal_key ]; then
+    if [ -n "$unseal_key" ]; then
         bashio::log.warning "we rekey another time to keep it locally"
         # unseal
         bashio::log.info "unseal one more time"
-        vault operator unseal $unseal_key
+        vault operator unseal "$unseal_key"
         bashio::log.info "rekey"
         vault operator rekey -cancel 2>/dev/null >/dev/null || true
         nonce=$(vault operator rekey -format json -pgp-keys="$ASC_PATH" -key-shares=1 -key-threshold=1 -init | jq .nonce -r)
         bashio::log.info "nonce: $nonce"
-        output=$(vault operator rekey -format json -nonce $nonce $unseal_key)
+        output=$(vault operator rekey -format json -nonce "$nonce" "$unseal_key")
         echo "$output" >$INI_PATH
         # delete old vault-ini.json, it won't work anymore.
         rm /data/vault/vault-ini.json 2>/dev/null || true
-        
+
         # we retoken too, we don't have one anymore
         vault operator generate-root -cancel 2>/dev/null >/dev/null || true
         nonce=$(vault operator generate-root -format json -pgp-key "$ASC_PATH" -init | jq .nonce -r)
         answer=$(vault operator generate-root -format json -nonce "$nonce" "$(decrypt keys_base64)")
         vault_answer=$(echo "$answer" | jq -r .encoded_root_token)
-        VAULT_TOKEN="$(decrypt_that $vault_answer)"
+        VAULT_TOKEN="$(decrypt_that "$vault_answer")"
         export VAULT_TOKEN
         bashio::log.info "New root token created, saving it"
         echo "$answer" >$TOKEN_INI_PATH
@@ -280,9 +280,9 @@ wait_root_token() {
                 bashio::log.info "Root token available"
                 return
             fi
-        bashio::log.error "Root token unavailable, exiting (sleep 60)"
-        sleep 60
-        exit 1
+            bashio::log.error "Root token unavailable, exiting (sleep 60)"
+            sleep 60
+            exit 1
         fi
     fi
 }
@@ -329,10 +329,10 @@ vault_rekey() {
     bashio::log.warning "Starting vault rekey"
     vault operator rekey -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator rekey -format json -pgp-keys "${PGP_KEYS}" -key-shares=1 -key-threshold=1 -init | jq .nonce -r)
-    test_key=$(cat $INI_PATH | jq .keys_base64)
+    test_key=$(jq .keys_base64 $INI_PATH)
     if [ "$test_key" = "null" ]; then
         keyname="unseal_keys_b64"
-    else 
+    else
         keyname="keys_base64"
     fi
     for unseal_key in $(decrypt $keyname); do
@@ -356,10 +356,10 @@ vault_retoken() {
     vault operator generate-root -cancel 2>/dev/null >/dev/null || true
     nonce=$(vault operator generate-root -format json -pgp-key "${PGP_KEYS}" -init | jq .nonce -r)
     # we use unseal keys to do the retoken
-    test_key=$(cat $INI_PATH | jq .keys_base64)
+    test_key=$(jq .keys_base64 $INI_PATH)
     if [ "$test_key" = "null" ]; then
         keyname="unseal_keys_b64"
-    else 
+    else
         keyname="keys_base64"
     fi
     for unseal_key in $(decrypt $keyname); do
