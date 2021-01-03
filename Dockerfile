@@ -16,7 +16,7 @@ RUN addgroup vault && \
 RUN set -eux; \
     export VAULT_VERSION=1.6.1; \
     export TERRAFORM_VERSION=0.14.3; \
-    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata && \
+    apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata nginx && \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
         armhf) ARCH='arm' ;; \
@@ -67,7 +67,7 @@ COPY /terraform/* /vault/terraform/
 ###
 # 8200/tcp is the primary interface that applications use to interact with
 # Vault. 8021 for the cluster
-EXPOSE 8200 8201
+EXPOSE 8200 8201 9080
 
 ###
 # vault config template
