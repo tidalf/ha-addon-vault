@@ -105,6 +105,7 @@ It's a bit tricky and those commands need to be exec outside of the addon contai
 - Set it in the config, restart
 - Start the rekeing using a backup
 - The script will retrieve the backup using the provisioning token above.
+
 ```bash
 #!/usr/bin/env bash
 # $1 is the encrypted unseal key (keys_b64 from the logs)
