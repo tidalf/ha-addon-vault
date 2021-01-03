@@ -6,7 +6,7 @@ on:
   release:
     types: ["published"]
   push:
-    branches: ["main"]
+    branches: ["main", "dev"]
     paths:
     - Dockerfile
     - build.json
@@ -76,7 +76,7 @@ jobs:
           $BUILD_ARGS \
           --${{ matrix.arch }} \
           --target /data \
-          --generic ${{ needs.init.outputs.version }}
+          --generic ${{ github.sha }}
 
   publish:
     name: publish addon
@@ -96,7 +96,7 @@ jobs:
       shell: bash
       if: needs.init.outputs.publish == 'true'
       env:
-        VERSION: ${{ needs.init.outputs.version }}
+        VERSION: ${{ github.sha }}
       run: |
         if [[ "$GITHUB_EVENT_NAME" = "release" ]]; then
           REPO_CHANNEL="ha-addons"
