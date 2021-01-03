@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# Unreleased
+### Added
+- nginx
+
 ## [0.3] - 2021-01-02
 ### Added
 - s6 process supervision
