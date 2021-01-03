@@ -2,11 +2,11 @@ name: Build plugin
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "dev"]
   release:
     types: ["published"]
   push:
-    branches: ["main"]
+    branches: ["main", "dev"]
     paths:
     - Dockerfile
     - build.json
