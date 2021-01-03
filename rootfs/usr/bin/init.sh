@@ -388,9 +388,9 @@ vault_retoken() {
 main() {
     # start by creating a gpg key if there's none already
     # if no cert are available and [ "$DISABLE_TLS" = false ] , print instructions and exit
-    if [ -f "$VAULT_TLS_CERTIFICATE" ] && [ "$DISABLE_TLS" = false ]; then
-        bashio::exit.nok "Certificates missing. Please change disable_tls to true or create the appriate certificates."
-    fi
+    #if [ -f "$VAULT_TLS_CERTIFICATE" ] && [ "$DISABLE_TLS" = false ]; then
+    #    bashio::exit.nok "Certificates missing. Please change disable_tls to true or create the appriate certificates."
+    #fi
     generate_gpg_key
 
     # wait for vault to listen
