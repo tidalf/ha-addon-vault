@@ -3,6 +3,8 @@
 # init vars
 CONFIG_PATH=/data/options.json
 DISABLE_TLS="$(bashio::config 'disable_tls')"
+VAULT_TLS_CERTIFICATE="$(bashio::config 'tls_certificate')"
+VAULT_TLS_PRIVKEY="$(bashio::config 'tls_private_key')"
 UNSAFE_SAVE_INI="$(bashio::config 'unsafe_auto_init')"
 VAULT_ADMIN_USER="$(bashio::config 'vault_admin_user')"
 VAULT_ADMIN_PASSWORD="$(bashio::config 'vault_admin_password')"
@@ -385,6 +387,10 @@ vault_retoken() {
 
 main() {
     # start by creating a gpg key if there's none already
+    # if no cert are available and [ "$DISABLE_TLS" = false ] , print instructions and exit
+    if [ -f "$VAULT_TLS_CERTIFICATE" ] && [ "$DISABLE_TLS" = false ]; then
+        bashio::exit.nok "Certificates missing. Please change disable_tls to true or create the appriate certificates."
+    fi
     generate_gpg_key
 
     # wait for vault to listen
