@@ -65,10 +65,9 @@ vault operator unseal [-migrate] $(echo $unsealkey | base64 -d | keybase pgp dec
 ```
 
 ### Use AWS KMS for autounseal
-It's possible to use the AWS KMS service to auto unseal the vault. 
-You'll need to create the kms key and the iam user credentials with correct policy (kms:Encrypt,kms:Decrypt and kms:DescribeKey).
-
-Then you can set the following values:
+* It's possible to use the AWS KMS service to auto unseal the vault. 
+* You'll need to create the kms key and the iam user credentials with correct policy (kms:Encrypt,kms:Decrypt and kms:DescribeKey).
+* Then you can set the following values:
 ```bash
 aws_unseal: true
 aws_region: eu-west-1
@@ -99,7 +98,6 @@ It's a bit tricky and those commands need to be exec outside of the addon contai
 - Set it in the config, restart
 - Start the rekeing using a backup
 - The script will retrieve the backup using the provisioning token above.
-
 ```bash
 #!/usr/bin/env bash
 # $1 is the encrypted unseal key (keys_b64 from the logs)
