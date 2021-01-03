@@ -14,10 +14,12 @@
 disable_tls: true
 ```
 
+
 ### Install
 
 Use the following repository (add it in the add-on store of the supervisor) : 
 https://github.com/tidalf/ha-addons
+
 
 
 ### Custom the configuration
@@ -35,6 +37,7 @@ raft_path: /config/vault/raft
 unsafe_auto_init: true
 ```
 
+
 ### Auto provisioning
 - You can enable initial config of the vault: It'll run a terraform config (it can be in changed in /config/vault/terraform)
 ```bash
@@ -44,13 +47,13 @@ auto_provision: true
 ````
 provision_token: a_token
 ````
-
 - You can create a default user with an admin policy attached like that: 
 ```bash
 create_admin_user: true
 vault_admin_user: admin
 vault_admin_password: some_password
 ```
+
 
 ### Use keybase to encrypt initial keys
 - You can enable auto initialization with gpg/keybase keys:
@@ -64,11 +67,11 @@ export VAULT_ADDR="http(s)://yourinstance:8200"
 vault operator unseal [-migrate] $(echo $unsealkey | base64 -d | keybase pgp decrypt)
 ```
 
-### Use AWS KMS for autounseal
-It's possible to use the AWS KMS service to auto unseal the vault. 
-You'll need to create the kms key and the iam user credentials with correct policy (kms:Encrypt,kms:Decrypt and kms:DescribeKey).
 
-Then you can set the following values:
+### Use AWS KMS for autounseal
+* It's possible to use the AWS KMS service to auto unseal the vault. 
+* You'll need to create the kms key and the iam user credentials with correct policy (kms:Encrypt,kms:Decrypt and kms:DescribeKey).
+* Then you can set the following values:
 ```bash
 aws_unseal: true
 aws_region: eu-west-1
@@ -77,17 +80,20 @@ aws_secret_key: ******
 aws_kms_key_id: ******
 ```
 
+
 If you disable aws kms, you need to set the downgrade variable (at least for the transition) (fixme)
 ```bash
 aws_unseal: false
 aws_unseal_downgrade: true
 ```
 
+
 ### Enable the cluster
 Cluster listener addr is set to localhost by default. 
 
 Set it to a valid address through 'vault_cluster_addr' then enable the port forward for tcp/8201 (provide a value for the port)
 (it's untested, no automated setup for multi nodes for now)
+
 
 ### Downgrading from keybase to unsafe local storage
 It's a bit tricky and those commands need to be exec outside of the addon container: 
@@ -99,7 +105,6 @@ It's a bit tricky and those commands need to be exec outside of the addon contai
 - Set it in the config, restart
 - Start the rekeing using a backup
 - The script will retrieve the backup using the provisioning token above.
-
 ```bash
 #!/usr/bin/env bash
 # $1 is the encrypted unseal key (keys_b64 from the logs)
@@ -119,7 +124,7 @@ echo "copy this token in the setting \"provision_token:\""
 echo "and set unsafe_downgrade: true"
 echo "then restart the addon, press enter when done"
 
-read a
+read something
 
 echo "$3" | base64 -d >> pb2
 vault operator unseal $(decrypt $1)
