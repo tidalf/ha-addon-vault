@@ -2,7 +2,7 @@ name: Build plugin
 
 on:
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main"]
   release:
     types: ["published"]
   push:
@@ -108,6 +108,9 @@ jobs:
         git clone https://github.com/tidalf/$REPO_CHANNEL ha-addons
         mkdir -p ha-addons/$REPOSITORY_NAME 2>/dev/null
         cp CHANGELOG.md README.md logo.png icon.png ha-addons/$REPOSITORY_NAME
+        if [ $VERSION = "dev" ]; then
+          VERSION=$(echo ${GITHUB_SHA} | cut -c1-8)
+        fi
         jq --arg version "$VERSION" '.version = $version' config.json > ha-addons/$REPOSITORY_NAME/config.json
         cd ha-addons
         git add $REPOSITORY_NAME
