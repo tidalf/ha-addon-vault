@@ -1,19 +1,21 @@
 listener "tcp" {
-  address = "0.0.0.0:8200"
+  address = "{{ .vault_api_addr }}"
   tls_cert_file = "/ssl/vault/fullchain.pem"
   tls_key_file  = "/ssl/vault/privkey.pem"
   tls_disable = {{ .disable_tls }}
 }
 storage "raft" {
   path = "{{ .raft_path }}"
-  node_id = "raft_node_1"
+  node_id = "{{ .node_id }}"
 }
-{{if eq .aws_unseal true }}
+
+{{if or $.aws_unseal .aws_unseal_downgrade}}
 seal "awskms" {
   region     = "{{ .aws_region }}"
   access_key = "{{ .aws_access_key }}"
   secret_key = "{{ .aws_secret_key }}"
   kms_key_id = "{{ .aws_kms_key_id }}"
+  disabled = {{if eq .aws_unseal true}} false {{else}} true {{end}}
 }
 {{end}}
 ui = true

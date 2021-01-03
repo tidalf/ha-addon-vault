@@ -1,5 +1,6 @@
 ARG VERSION=1.15.3
 ARG VAULT_VERSION=1.6.1
+ARG TERRAFORM_VERSION=0.14.3
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
@@ -14,6 +15,7 @@ RUN addgroup vault && \
 # from https://github.com/hashicorp/docker-vault/blob/master/0.X/Dockerfile
 RUN set -eux; \
     export VAULT_VERSION=1.6.1; \
+    export TERRAFORM_VERSION=0.14.3; \
     apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata && \
     apkArch="$(apk --print-arch)"; \
     case "$apkArch" in \
@@ -42,12 +44,16 @@ RUN set -eux; \
     gpg --batch --verify vault_${VAULT_VERSION}_SHA256SUMS.sig vault_${VAULT_VERSION}_SHA256SUMS && \
     grep vault_${VAULT_VERSION}_linux_${ARCH}.zip vault_${VAULT_VERSION}_SHA256SUMS | sha256sum -c && \
     unzip -d /bin vault_${VAULT_VERSION}_linux_${ARCH}.zip && \
+    wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip && \
+    wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
+    wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig && \
+    gpg --batch --verify terraform_${TERRAFORM_VERSION}_SHA256SUMS.sig terraform_${TERRAFORM_VERSION}_SHA256SUMS && \
+    grep terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip terraform_${TERRAFORM_VERSION}_SHA256SUMS | sha256sum -c && \
+    unzip -d /bin terraform_${TERRAFORM_VERSION}_linux_${ARCH}.zip && \
     cd /tmp && \
     rm -rf /tmp/build && \
     gpgconf --kill dirmngr && \
-    gpgconf --kill gpg-agent && \
-    apk del gnupg openssl && \
-    rm -rf /root/.gnupg
+    gpgconf --kill gpg-agent
 
 RUN mkdir -p /vault/logs && \
     mkdir -p /vault/file && \
@@ -55,18 +61,19 @@ RUN mkdir -p /vault/logs && \
     mkdir -p /vault/raft && \
     chown -R vault:vault /vault
 
+RUN mkdir -p /vault/terraform
+
+COPY /terraform/* /vault/terraform/
 ###
 # 8200/tcp is the primary interface that applications use to interact with
 # Vault. 8021 for the cluster
 EXPOSE 8200 8201
 
 ###
-# copy entrypoint and vault config template
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# vault config template
 COPY vault.hcl.template  /vault/config/
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-
-CMD ["server"]
+# Copy root filesystem
+COPY rootfs /
 
 LABEL io.hass.version="VERSION" io.hass.type="addon" io.hass.arch="armhf|aarch64|i386|amd64"

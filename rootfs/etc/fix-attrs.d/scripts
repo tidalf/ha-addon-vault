@@ -1,0 +1,2 @@
+/usr/bin/vault.sh false root 0755 0755
+/usr/bin/init.sh false root 0755 0755
