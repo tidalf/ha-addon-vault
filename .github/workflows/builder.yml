@@ -43,7 +43,7 @@ jobs:
 
     - name: Get version
       id: version
-      uses: home-assistant/actions/helpers/version@master
+      uses: b46ha/actions/helpers/version@master
       with:
         type: ${{ env.BUILD_TYPE }}
 
@@ -76,7 +76,7 @@ jobs:
           $BUILD_ARGS \
           --${{ matrix.arch }} \
           --target /data \
-          --generic ${{ github.sha }}
+          --generic ${{ needs.init.outputs.version }}
 
   publish:
     name: publish addon
@@ -96,7 +96,7 @@ jobs:
       shell: bash
       if: needs.init.outputs.publish == 'true'
       env:
-        VERSION: ${{ github.sha }}
+        VERSION: ${{ needs.init.outputs.version }}
       run: |
         if [[ "$GITHUB_EVENT_NAME" = "release" ]]; then
           REPO_CHANNEL="ha-addons"
