@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 # Unreleased
 ### Added
-- nginx
+- ingress
 
 ## [0.3] - 2021-01-02
 ### Added
