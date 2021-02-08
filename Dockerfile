@@ -14,7 +14,7 @@ RUN addgroup vault && \
 # Set up certificates, our base tools, and Vault.
 # from https://github.com/hashicorp/docker-vault/blob/master/0.X/Dockerfile
 RUN set -eux; \
-    export VAULT_VERSION=1.6.1; \
+    export VAULT_VERSION=1.6.2; \
     export TERRAFORM_VERSION=0.14.3; \
     apk add --no-cache ca-certificates gnupg openssl libcap su-exec dumb-init tzdata && \
     apkArch="$(apk --print-arch)"; \
