@@ -42,7 +42,7 @@ auto_provision: true
 ```
 - If you don't use unsafe auto unseal (it stores a token), you can specify a provisioning token (make it short lived)
 ````
-provision_token: a_token
+provision_token_password: a_token
 ````
 
 - You can create a default user with an admin policy attached like that: 
@@ -115,7 +115,7 @@ vault operator unseal $(decrypt $1)
 vault login $(decrypt $2)
 vault token create -ttl=2h
 
-echo "copy this token in the setting \"provision_token:\""
+echo "copy this token in the setting \"provision_token_password:\""
 echo "and set unsafe_downgrade: true"
 echo "then restart the addon, press enter when done"
 

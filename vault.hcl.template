@@ -13,7 +13,7 @@ storage "raft" {
 seal "awskms" {
   region     = "{{ .aws_region }}"
   access_key = "{{ .aws_access_key }}"
-  secret_key = "{{ .aws_secret_key }}"
+  secret_key = "{{ .aws_secret_key_password }}"
   kms_key_id = "{{ .aws_kms_key_id }}"
   disabled = {{if eq .aws_unseal true}} false {{else}} true {{end}}
 }
