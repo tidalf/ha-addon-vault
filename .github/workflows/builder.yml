@@ -33,7 +33,7 @@ jobs:
       publish: ${{ steps.version.outputs.publish }}
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
@@ -56,7 +56,7 @@ jobs:
         arch: ${{ fromJson(needs.init.outputs.architectures) }}
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
    
     - name: Login to DockerHub
       if: needs.init.outputs.publish == 'true'
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Initialize git
       if: needs.init.outputs.publish == 'true'
       uses: home-assistant/actions/helpers/git-init@master
